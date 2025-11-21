@@ -1,0 +1,33 @@
+# Backend
+backend/node_modules/
+backend/.env
+backend/*.log
+backend/coverage/
+backend/dist/
+backend/build/
+
+# Mobile
+mobile/stepup_app/.dart_tool/
+mobile/stepup_app/.flutter-plugins
+mobile/stepup_app/.flutter-plugins-dependencies
+mobile/stepup_app/.packages
+mobile/stepup_app/.pub-cache/
+mobile/stepup_app/.pub/
+mobile/stepup_app/build/
+mobile/stepup_app/ios/Pods/
+mobile/stepup_app/ios/.symlinks/
+mobile/stepup_app/ios/Flutter/Flutter.framework
+mobile/stepup_app/ios/Flutter/Flutter.podspec
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment
+.env
+.env.local
+.env.*.local
