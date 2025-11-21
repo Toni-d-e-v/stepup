@@ -24,6 +24,12 @@
 - **Provider** - State management
 - **HTTP/Dio** - API komunikacija
 
+### Admin Panel (Web)
+- **React 18** - UI framework
+- **Material-UI** - Component library
+- **Vite** - Build tool
+- **Recharts** - Data visualization
+
 ## 📱 Funkcionalnosti
 
 ### MVP (Faza 1) - ✅ Implementirano
@@ -34,6 +40,7 @@
 - ✅ Rang liste (dnevne, tjedne, mjesečne)
 - ✅ Grupe i grupne rang liste
 - ✅ Postavljanje dnevnih ciljeva
+- ✅ **Admin Panel** - Kompletni web interface za administraciju
 
 ### Faza 2 - Gamifikacija (Planirano)
 - 🔲 Bedževi i medalje
@@ -60,20 +67,31 @@ stepup/
 │   │   ├── routes/         # API rute
 │   │   ├── utils/          # Pomoćne funkcije
 │   │   └── server.js       # Glavni server file
+│   ├── scripts/            # Utility scripts (create admin)
 │   ├── package.json
 │   └── README.md
 │
-└── mobile/                  # Flutter mobilna aplikacija
-    └── stepup_app/
-        ├── lib/
-        │   ├── models/      # Data modeli
-        │   ├── screens/     # UI ekrani
-        │   ├── services/    # API servisi
-        │   ├── widgets/     # Reusable widgeti
-        │   ├── utils/       # Konstante i utiliti
-        │   └── main.dart    # App entry point
-        ├── pubspec.yaml
-        └── README.md
+├── mobile/                  # Flutter mobilna aplikacija
+│   └── stepup_app/
+│       ├── lib/
+│       │   ├── models/      # Data modeli
+│       │   ├── screens/     # UI ekrani
+│       │   ├── services/    # API servisi
+│       │   ├── widgets/     # Reusable widgeti
+│       │   ├── utils/       # Konstante i utiliti
+│       │   └── main.dart    # App entry point
+│       ├── pubspec.yaml
+│       └── README.md
+│
+└── admin-panel/             # React admin web panel
+    ├── src/
+    │   ├── components/      # React komponente
+    │   ├── pages/           # Admin stranice
+    │   ├── services/        # API integracija
+    │   ├── contexts/        # React contexts
+    │   └── App.jsx          # Main app
+    ├── package.json
+    └── README.md
 ```
 
 ## 🔧 Setup i instalacija
@@ -151,6 +169,46 @@ flutter run -d <device_id>
 # Run in release mode
 flutter run --release
 ```
+
+### Admin Panel Setup
+
+1. Navigate to admin panel directory:
+```bash
+cd admin-panel
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Create admin user:
+```bash
+cd ../backend
+node scripts/createAdmin.js
+```
+
+Default credentials:
+- **Email**: admin@stepup.com
+- **Password**: admin123
+
+4. Start the admin panel:
+```bash
+cd ../admin-panel
+npm run dev
+```
+
+Admin panel will be available at `http://localhost:3001`
+
+**Admin Panel Features:**
+- 📊 Dashboard with analytics and trends
+- 👥 User management (view, edit, delete)
+- 🏢 Group management with auto-generation
+- 🏆 Challenge creation and tracking
+- 📈 System statistics and reports
+- 💾 Data export (JSON format)
+
+See `admin-panel/README.md` for detailed documentation.
 
 ## 📡 API Endpoints
 

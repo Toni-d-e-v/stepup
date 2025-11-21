@@ -30,8 +30,8 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['student', 'professor'],
-    required: [true, 'Please specify role (student or professor)'],
+    enum: ['student', 'professor', 'admin'],
+    required: [true, 'Please specify role (student, professor, or admin)'],
   },
   groups: [{
     type: mongoose.Schema.Types.ObjectId,
