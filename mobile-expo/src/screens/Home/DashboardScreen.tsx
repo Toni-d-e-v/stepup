@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { Text, Card, Button, ActivityIndicator } from 'react-native-paper';
+import { Text, Card, Button, ActivityIndicator, Snackbar } from 'react-native-paper';
 import { StepCard } from '../../components/StepCard';
 import { useAuth } from '../../context/AuthContext';
 import { stepsService } from '../../services/steps';
@@ -14,6 +14,7 @@ export const DashboardScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [todaySteps, setTodaySteps] = useState(0);
+  const [message, setMessage] = useState('');
   const [stats, setStats] = useState<StepStats>({
     today: 0,
     week: 0,
@@ -67,8 +68,10 @@ export const DashboardScreen: React.FC = () => {
     try {
       await pedometer.forceSync();
       await loadStats();
+      setMessage('✅ Steps synced successfully!');
     } catch (error) {
       console.error('Error syncing steps:', error);
+      setMessage('❌ Failed to sync steps');
     }
   };
 
@@ -145,8 +148,8 @@ export const DashboardScreen: React.FC = () => {
         <Card.Content>
           <Text style={styles.infoTitle}>📱 Automatic Step Tracking</Text>
           <Text style={styles.infoText}>
-            Your steps are being tracked automatically! Steps are synced to the server every 100
-            steps or when you manually sync.
+            Your steps are being tracked automatically using your device's pedometer!
+            Steps sync to the server every 100 steps or when you tap sync below.
           </Text>
           <Button
             mode="contained"
@@ -168,6 +171,18 @@ export const DashboardScreen: React.FC = () => {
           <Text style={styles.tipText}>• Take a 10-minute walk after meals</Text>
         </Card.Content>
       </Card>
+
+      <Snackbar
+        visible={!!message}
+        onDismiss={() => setMessage('')}
+        duration={3000}
+        action={{
+          label: 'OK',
+          onPress: () => setMessage(''),
+        }}
+      >
+        {message}
+      </Snackbar>
     </ScrollView>
   );
 };

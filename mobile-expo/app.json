@@ -18,8 +18,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.stepup.mobile",
       "infoPlist": {
-        "NSMotionUsageDescription": "We need access to your motion data to track your steps automatically.",
-        "NSHealthShareUsageDescription": "We need access to your health data to track your steps."
+        "NSMotionUsageDescription": "StepUp needs access to your motion data to automatically track your steps."
       }
     },
     "android": {
@@ -29,8 +28,7 @@
       },
       "package": "com.stepup.mobile",
       "permissions": [
-        "ACTIVITY_RECOGNITION",
-        "android.permission.ACTIVITY_RECOGNITION"
+        "ACTIVITY_RECOGNITION"
       ]
     },
     "web": {

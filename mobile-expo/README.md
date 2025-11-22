@@ -1,11 +1,11 @@
 # StepUp Mobile App (Expo/React Native)
 
-Beautiful, modern fitness tracking app built with Expo and React Native. Features **automatic step tracking** with real-time synchronization.
+Beautiful, modern fitness tracking app built with Expo and React Native. Features **real automatic step tracking** using your device's pedometer with real-time synchronization.
 
 ## 🚀 Features
 
-- ✅ **Automatic Step Tracking** - Real-time step counting using device sensors
-- ✅ **Beautiful Material Design UI** - Modern, polished interface
+- ✅ **Automatic Step Tracking** - Real-time step counting using device pedometer (iOS & Android)
+- ✅ **Beautiful Material Design UI** - Modern, polished interface with gradients
 - ✅ **User Authentication** - Secure login and registration
 - ✅ **Live Dashboard** - Real-time stats with daily, weekly, and monthly goals
 - ✅ **Leaderboards** - Compete with friends (daily, weekly, monthly)
@@ -29,7 +29,7 @@ The app includes:
 - **TypeScript** - Type-safe development
 - **React Navigation** - Bottom tabs + stack navigation
 - **React Native Paper** - Material Design components
-- **Expo Pedometer** - Real step tracking
+- **Expo Sensors (Pedometer)** - Real automatic step tracking
 - **Axios** - API communication
 - **AsyncStorage** - Local data persistence
 - **Expo Linear Gradient** - Beautiful gradient effects
@@ -88,17 +88,17 @@ This will:
 - Press `a` for Android emulator
 - Press `i` for iOS simulator (Mac only)
 
-## 📱 Testing Step Tracking
+## 📱 Step Tracking
 
-### On Physical Device (BEST)
-- Just walk around with your phone!
-- Steps are tracked automatically using your phone's pedometer
-- Steps sync to backend every 100 steps
+The app automatically tracks your steps using your device's built-in pedometer:
 
-### On Emulator
-- Step tracking won't work on emulators (no physical sensors)
-- You can still test all other features
-- Consider using a physical device for full experience
+1. **Automatic Detection** - Just walk around with your phone!
+2. **Real-time Updates** - See your steps update as you walk
+3. **Auto-sync** - Steps sync to backend every 100 steps
+4. **Local Storage** - Steps are saved locally and persist across app restarts
+5. **Manual Sync** - Tap "Sync Now" button to force immediate sync
+
+**Note:** Automatic step tracking only works on **physical devices** (iOS/Android). Emulators don't have pedometer hardware, so steps won't track.
 
 ## 🎨 App Structure
 
@@ -175,13 +175,14 @@ export const COLORS = {
 
 ### "Network request failed" error
 - Make sure backend is running on `http://localhost:3000`
-- Update `API_BASE_URL` with your computer's IP address
+- Update `API_BASE_URL` with your computer's IP address (find with `ipconfig` or `ifconfig`)
 - Check firewall settings
 
 ### Steps not tracking
-- Only works on physical devices (not emulators)
+- **Only works on physical devices** - Emulators don't have pedometer hardware
 - Grant motion/activity permissions when prompted
 - Check Settings > StepUp > Motion & Fitness (iOS)
+- Check that app has Activity Recognition permission (Android)
 
 ### App won't load
 ```bash
@@ -218,11 +219,11 @@ eas build --platform ios
 ## 🌟 Key Features Explained
 
 ### Automatic Step Tracking
-- Uses `expo-sensors` Pedometer API
+- Uses `Pedometer` from `expo-sensors`
 - Tracks steps from midnight to now
 - Auto-syncs every 100 steps
 - Stores locally and on backend
-- Works even when app is in background
+- Works with iOS Core Motion and Android Sensor APIs
 
 ### Beautiful UI
 - Material Design 3 components
@@ -240,11 +241,11 @@ eas build --platform ios
 ## 🔐 Permissions
 
 The app requires:
-- **Motion & Fitness** (iOS) - For step tracking
-- **Activity Recognition** (Android) - For step tracking
-- **Internet** - For API communication
+- **Motion & Fitness** (iOS) - For automatic step tracking
+- **Activity Recognition** (Android) - For automatic step tracking
+- **Internet** - For API communication with backend server
 
-These are automatically requested on first launch.
+These permissions are automatically requested on first launch.
 
 ## 📄 License
 

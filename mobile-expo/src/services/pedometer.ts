@@ -5,9 +5,9 @@ import { stepsService } from './steps';
 
 class PedometerService {
   private subscription: any = null;
-  private lastStepCount: number = 0;
   private todaySteps: number = 0;
   private lastSyncDate: string = '';
+  private lastSyncedSteps: number = 0;
 
   async initialize() {
     // Check if pedometer is available
@@ -20,8 +20,8 @@ class PedometerService {
     // Load today's steps from storage
     await this.loadTodaySteps();
 
-    // Start listening to step updates
-    this.startTracking();
+    // Get steps from today and start tracking
+    await this.startTracking();
 
     return true;
   }
@@ -34,10 +34,12 @@ class PedometerService {
       const data = JSON.parse(stored);
       if (data.date === today) {
         this.todaySteps = data.steps;
+        this.lastSyncedSteps = data.steps;
         this.lastSyncDate = today;
       } else {
         // New day, reset steps
         this.todaySteps = 0;
+        this.lastSyncedSteps = 0;
         this.lastSyncDate = today;
         await this.saveTodaySteps();
       }
@@ -55,7 +57,7 @@ class PedometerService {
     );
   }
 
-  startTracking() {
+  async startTracking() {
     if (this.subscription) {
       return; // Already tracking
     }
@@ -63,30 +65,29 @@ class PedometerService {
     // Get steps from midnight to now
     const start = new Date();
     start.setHours(0, 0, 0, 0);
+    const end = new Date();
 
-    this.subscription = Pedometer.watchStepCount((result) => {
-      const newSteps = result.steps;
+    try {
+      // Get initial step count for today
+      const pastSteps = await Pedometer.getStepCountAsync(start, end);
+      this.todaySteps = pastSteps.steps;
+      await this.saveTodaySteps();
 
-      // If this is the first reading, just store it
-      if (this.lastStepCount === 0) {
-        this.lastStepCount = newSteps;
-        return;
-      }
-
-      // Calculate step difference
-      const stepDiff = newSteps - this.lastStepCount;
-
-      if (stepDiff > 0) {
-        this.todaySteps += stepDiff;
-        this.lastStepCount = newSteps;
+      // Start watching for step updates
+      this.subscription = Pedometer.watchStepCount((result) => {
+        // watchStepCount returns incremental steps since subscription started
+        // Add them to our initial count
+        this.todaySteps = pastSteps.steps + result.steps;
         this.saveTodaySteps();
 
-        // Auto-sync to backend every 100 steps
-        if (this.todaySteps % 100 === 0) {
+        // Auto-sync every 100 steps
+        if (this.todaySteps - this.lastSyncedSteps >= 100) {
           this.syncToBackend();
         }
-      }
-    });
+      });
+    } catch (error) {
+      console.error('Error starting step tracking:', error);
+    }
   }
 
   stopTracking() {
@@ -104,24 +105,11 @@ class PedometerService {
     return this.todaySteps;
   }
 
-  async getPastSteps(days: number = 7): Promise<{ date: string; steps: number }[]> {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(start.getDate() - days);
-
-    try {
-      const result = await Pedometer.getStepCountAsync(start, end);
-      return [{ date: new Date().toISOString(), steps: result.steps }];
-    } catch (error) {
-      console.error('Error getting past steps:', error);
-      return [];
-    }
-  }
-
   async syncToBackend(): Promise<void> {
     try {
       if (this.todaySteps > 0) {
         await stepsService.addSteps(this.todaySteps, 'auto');
+        this.lastSyncedSteps = this.todaySteps;
         console.log(`Synced ${this.todaySteps} steps to backend`);
       }
     } catch (error) {
@@ -129,7 +117,7 @@ class PedometerService {
     }
   }
 
-  // Force sync (called manually or on app background)
+  // Force sync (called manually)
   async forceSync(): Promise<void> {
     await this.saveTodaySteps();
     await this.syncToBackend();
