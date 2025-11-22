@@ -48,7 +48,7 @@ class StepService {
         queryParams: queryParams,
       );
 
-      final List<dynamic> stepsList = response is List ? response : (response as List<dynamic>);
+      final List<dynamic> stepsList = (response as List<dynamic>);
       return stepsList.map((step) => StepEntry.fromJson(step as Map<String, dynamic>)).toList();
     } catch (e) {
       throw Exception('Failed to get steps: $e');
@@ -77,7 +77,7 @@ class StepService {
         queryParams: {'limit': limit.toString()},
       );
 
-      final List<dynamic> stepsList = response is List ? response : (response as List<dynamic>);
+      final List<dynamic> stepsList = (response as List<dynamic>);
       return stepsList.map((step) => StepEntry.fromJson(step as Map<String, dynamic>)).toList();
     } catch (e) {
       throw Exception('Failed to get user steps: $e');
