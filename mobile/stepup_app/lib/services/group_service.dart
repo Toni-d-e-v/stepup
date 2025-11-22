@@ -16,11 +16,8 @@ class GroupService {
         queryParams: queryParams.isNotEmpty ? queryParams : null,
       );
 
-      if (response is List) {
-        return response.map((group) => Group.fromJson(group)).toList();
-      } else {
-        throw Exception('Unexpected response format');
-      }
+      final List<dynamic> groupsList = response is List ? response : (response as List<dynamic>);
+      return groupsList.map((group) => Group.fromJson(group as Map<String, dynamic>)).toList();
     } catch (e) {
       throw Exception('Failed to get groups: $e');
     }
@@ -87,11 +84,8 @@ class GroupService {
         '${AppConstants.groupsEndpoint}/$groupId/leaderboard',
       );
 
-      if (response is List) {
-        return response.map((entry) => LeaderboardEntry.fromJson(entry)).toList();
-      } else {
-        throw Exception('Unexpected response format');
-      }
+      final List<dynamic> leaderboardList = response is List ? response : (response as List<dynamic>);
+      return leaderboardList.map((entry) => LeaderboardEntry.fromJson(entry as Map<String, dynamic>)).toList();
     } catch (e) {
       throw Exception('Failed to get group leaderboard: $e');
     }

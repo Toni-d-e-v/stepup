@@ -48,11 +48,8 @@ class StepService {
         queryParams: queryParams,
       );
 
-      if (response is List) {
-        return response.map((step) => StepEntry.fromJson(step)).toList();
-      } else {
-        throw Exception('Unexpected response format');
-      }
+      final List<dynamic> stepsList = response is List ? response : (response as List<dynamic>);
+      return stepsList.map((step) => StepEntry.fromJson(step as Map<String, dynamic>)).toList();
     } catch (e) {
       throw Exception('Failed to get steps: $e');
     }
@@ -80,11 +77,8 @@ class StepService {
         queryParams: {'limit': limit.toString()},
       );
 
-      if (response is List) {
-        return response.map((step) => StepEntry.fromJson(step)).toList();
-      } else {
-        throw Exception('Unexpected response format');
-      }
+      final List<dynamic> stepsList = response is List ? response : (response as List<dynamic>);
+      return stepsList.map((step) => StepEntry.fromJson(step as Map<String, dynamic>)).toList();
     } catch (e) {
       throw Exception('Failed to get user steps: $e');
     }

@@ -19,11 +19,8 @@ class LeaderboardService {
         queryParams: queryParams.isNotEmpty ? queryParams : null,
       );
 
-      if (response is List) {
-        return response.map((entry) => LeaderboardEntry.fromJson(entry)).toList();
-      } else {
-        throw Exception('Unexpected response format');
-      }
+      final List<dynamic> leaderboardList = response is List ? response : (response as List<dynamic>);
+      return leaderboardList.map((entry) => LeaderboardEntry.fromJson(entry as Map<String, dynamic>)).toList();
     } catch (e) {
       throw Exception('Failed to get daily leaderboard: $e');
     }
@@ -43,11 +40,8 @@ class LeaderboardService {
         queryParams: queryParams.isNotEmpty ? queryParams : null,
       );
 
-      if (response is List) {
-        return response.map((entry) => LeaderboardEntry.fromJson(entry)).toList();
-      } else {
-        throw Exception('Unexpected response format');
-      }
+      final List<dynamic> leaderboardList = response is List ? response : (response as List<dynamic>);
+      return leaderboardList.map((entry) => LeaderboardEntry.fromJson(entry as Map<String, dynamic>)).toList();
     } catch (e) {
       throw Exception('Failed to get weekly leaderboard: $e');
     }
@@ -67,11 +61,8 @@ class LeaderboardService {
         queryParams: queryParams.isNotEmpty ? queryParams : null,
       );
 
-      if (response is List) {
-        return response.map((entry) => LeaderboardEntry.fromJson(entry)).toList();
-      } else {
-        throw Exception('Unexpected response format');
-      }
+      final List<dynamic> leaderboardList = response is List ? response : (response as List<dynamic>);
+      return leaderboardList.map((entry) => LeaderboardEntry.fromJson(entry as Map<String, dynamic>)).toList();
     } catch (e) {
       throw Exception('Failed to get monthly leaderboard: $e');
     }
