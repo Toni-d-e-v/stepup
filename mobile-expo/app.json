@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "StepUp",
+    "slug": "stepup-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6200ee"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.stepup.mobile",
+      "infoPlist": {
+        "NSMotionUsageDescription": "We need access to your motion data to track your steps automatically.",
+        "NSHealthShareUsageDescription": "We need access to your health data to track your steps."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#6200ee"
+      },
+      "package": "com.stepup.mobile",
+      "permissions": [
+        "ACTIVITY_RECOGNITION",
+        "android.permission.ACTIVITY_RECOGNITION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "Allow StepUp to access your motion data for automatic step tracking."
+        }
+      ]
+    ]
+  }
+}
