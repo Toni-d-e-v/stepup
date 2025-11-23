@@ -30,8 +30,13 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['student', 'professor', 'admin'],
-    required: [true, 'Please specify role (student, professor, or admin)'],
+    enum: ['user', 'schoolAdmin', 'superAdmin'],
+    default: 'user',
+  },
+  school: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'School',
+    default: null,
   },
   groups: [{
     type: mongoose.Schema.Types.ObjectId,
