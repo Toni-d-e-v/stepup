@@ -1,9 +1,9 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// Check if user is an admin
+// Check if user is an admin (superAdmin or schoolAdmin)
 const isAdmin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
+  if (req.user && (req.user.role === 'superAdmin' || req.user.role === 'schoolAdmin')) {
     next();
   } else {
     res.status(403).json({ message: 'Access denied. Admins only.' });
@@ -21,13 +21,16 @@ const protectAdmin = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = await User.findById(decoded.id).select('-password');
+      req.user = await User.findById(decoded.id)
+        .select('-password')
+        .populate('school', 'name');
 
       if (!req.user) {
         return res.status(401).json({ message: 'User not found' });
       }
 
-      if (req.user.role !== 'admin') {
+      // Accept both superAdmin and schoolAdmin roles
+      if (req.user.role !== 'superAdmin' && req.user.role !== 'schoolAdmin') {
         return res.status(403).json({ message: 'Admin access required' });
       }
 
