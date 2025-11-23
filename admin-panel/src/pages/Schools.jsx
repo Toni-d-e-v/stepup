@@ -21,8 +21,20 @@ import {
   Chip,
   Alert,
   CircularProgress,
+  Collapse,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  PersonAdd as PersonAddIcon,
+} from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -34,12 +46,21 @@ export default function Schools() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
+  const [openAdminDialog, setOpenAdminDialog] = useState(false);
   const [editingSchool, setEditingSchool] = useState(null);
+  const [selectedSchool, setSelectedSchool] = useState(null);
+  const [expandedSchool, setExpandedSchool] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     address: '',
     city: '',
     country: '',
+  });
+  const [adminFormData, setAdminFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
   });
 
   useEffect(() => {
@@ -58,7 +79,25 @@ export default function Schools() {
       if (!response.ok) throw new Error('Failed to fetch schools');
 
       const data = await response.json();
-      setSchools(data);
+
+      // Fetch details for each school to get schoolAdmins
+      const schoolsWithAdmins = await Promise.all(
+        data.map(async (school) => {
+          try {
+            const detailResponse = await fetch(`${API_URL}/schools/${school._id}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (detailResponse.ok) {
+              return await detailResponse.json();
+            }
+            return school;
+          } catch {
+            return school;
+          }
+        })
+      );
+
+      setSchools(schoolsWithAdmins);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -98,6 +137,28 @@ export default function Schools() {
     });
   };
 
+  const handleOpenAdminDialog = (school) => {
+    setSelectedSchool(school);
+    setAdminFormData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      password: '',
+    });
+    setOpenAdminDialog(true);
+  };
+
+  const handleCloseAdminDialog = () => {
+    setOpenAdminDialog(false);
+    setSelectedSchool(null);
+    setAdminFormData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      password: '',
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -131,6 +192,61 @@ export default function Schools() {
     }
   };
 
+  const handleCreateSchoolAdmin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch(`${API_URL}/schools/${selectedSchool._id}/create-admin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(adminFormData),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to create school admin');
+      }
+
+      setSuccess('School admin created successfully');
+      handleCloseAdminDialog();
+      fetchSchools();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleRemoveSchoolAdmin = async (schoolId, adminId) => {
+    if (!window.confirm('Are you sure you want to remove this school admin?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch(`${API_URL}/schools/${schoolId}/admins/${adminId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to remove school admin');
+      }
+
+      setSuccess('School admin removed successfully');
+      fetchSchools();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const handleDelete = async (schoolId) => {
     if (!window.confirm('Are you sure you want to deactivate this school?')) {
       return;
@@ -155,6 +271,10 @@ export default function Schools() {
     } catch (err) {
       setError(err.message);
     }
+  };
+
+  const toggleExpand = (schoolId) => {
+    setExpandedSchool(expandedSchool === schoolId ? null : schoolId);
   };
 
   if (user?.role !== 'superAdmin') {
@@ -202,56 +322,121 @@ export default function Schools() {
           <Table>
             <TableHead>
               <TableRow>
+                <TableCell width="50px"></TableCell>
                 <TableCell>Name</TableCell>
                 <TableCell>City</TableCell>
                 <TableCell>Country</TableCell>
+                <TableCell>Admins</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {schools.map((school) => (
-                <TableRow key={school._id}>
-                  <TableCell>
-                    <Typography variant="body1" fontWeight="500">
-                      {school.name}
-                    </Typography>
-                    {school.address && (
-                      <Typography variant="body2" color="text.secondary">
-                        {school.address}
+                <React.Fragment key={school._id}>
+                  <TableRow>
+                    <TableCell>
+                      <IconButton
+                        size="small"
+                        onClick={() => toggleExpand(school._id)}
+                      >
+                        {expandedSchool === school._id ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                      </IconButton>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body1" fontWeight="500">
+                        {school.name}
                       </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>{school.city || '-'}</TableCell>
-                  <TableCell>{school.country || '-'}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={school.active ? 'Active' : 'Inactive'}
-                      color={school.active ? 'success' : 'default'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell align="right">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleOpenDialog(school)}
-                      color="primary"
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDelete(school._id)}
-                      color="error"
-                    >
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
+                      {school.address && (
+                        <Typography variant="body2" color="text.secondary">
+                          {school.address}
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>{school.city || '-'}</TableCell>
+                    <TableCell>{school.country || '-'}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={`${school.schoolAdmins?.length || 0} admin(s)`}
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={school.active ? 'Active' : 'Inactive'}
+                        color={school.active ? 'success' : 'default'}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <IconButton
+                        size="small"
+                        onClick={() => handleOpenAdminDialog(school)}
+                        color="success"
+                        title="Add School Admin"
+                      >
+                        <PersonAddIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleOpenDialog(school)}
+                        color="primary"
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDelete(school._id)}
+                        color="error"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
+                      <Collapse in={expandedSchool === school._id} timeout="auto" unmountOnExit>
+                        <Box sx={{ margin: 2 }}>
+                          <Typography variant="h6" gutterBottom component="div">
+                            School Admins
+                          </Typography>
+                          {school.schoolAdmins && school.schoolAdmins.length > 0 ? (
+                            <List>
+                              {school.schoolAdmins.map((admin) => (
+                                <ListItem key={admin._id}>
+                                  <ListItemText
+                                    primary={`${admin.firstName} ${admin.lastName}`}
+                                    secondary={admin.email}
+                                  />
+                                  <ListItemSecondaryAction>
+                                    <IconButton
+                                      edge="end"
+                                      onClick={() => handleRemoveSchoolAdmin(school._id, admin._id)}
+                                      color="error"
+                                      size="small"
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                  </ListItemSecondaryAction>
+                                </ListItem>
+                              ))}
+                            </List>
+                          ) : (
+                            <Typography variant="body2" color="text.secondary">
+                              No school admins assigned yet.
+                            </Typography>
+                          )}
+                        </Box>
+                      </Collapse>
+                    </TableCell>
+                  </TableRow>
+                </React.Fragment>
               ))}
               {schools.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
+                  <TableCell colSpan={7} align="center">
                     <Typography variant="body2" color="text.secondary" py={4}>
                       No schools found. Create your first school to get started.
                     </Typography>
@@ -263,6 +448,7 @@ export default function Schools() {
         </TableContainer>
       )}
 
+      {/* School Dialog */}
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <form onSubmit={handleSubmit}>
           <DialogTitle>{editingSchool ? 'Edit School' : 'Add New School'}</DialogTitle>
@@ -299,6 +485,54 @@ export default function Schools() {
             <Button onClick={handleCloseDialog}>Cancel</Button>
             <Button type="submit" variant="contained" color="primary">
               {editingSchool ? 'Update' : 'Create'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      {/* School Admin Dialog */}
+      <Dialog open={openAdminDialog} onClose={handleCloseAdminDialog} maxWidth="sm" fullWidth>
+        <form onSubmit={handleCreateSchoolAdmin}>
+          <DialogTitle>Create School Admin for {selectedSchool?.name}</DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <TextField
+                label="First Name"
+                required
+                fullWidth
+                value={adminFormData.firstName}
+                onChange={(e) => setAdminFormData({ ...adminFormData, firstName: e.target.value })}
+              />
+              <TextField
+                label="Last Name"
+                required
+                fullWidth
+                value={adminFormData.lastName}
+                onChange={(e) => setAdminFormData({ ...adminFormData, lastName: e.target.value })}
+              />
+              <TextField
+                label="Email"
+                type="email"
+                required
+                fullWidth
+                value={adminFormData.email}
+                onChange={(e) => setAdminFormData({ ...adminFormData, email: e.target.value })}
+              />
+              <TextField
+                label="Password"
+                type="password"
+                required
+                fullWidth
+                value={adminFormData.password}
+                onChange={(e) => setAdminFormData({ ...adminFormData, password: e.target.value })}
+                helperText="Minimum 6 characters"
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseAdminDialog}>Cancel</Button>
+            <Button type="submit" variant="contained" color="primary">
+              Create Admin
             </Button>
           </DialogActions>
         </form>

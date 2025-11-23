@@ -6,6 +6,7 @@ const {
   createSchool,
   updateSchool,
   deleteSchool,
+  createSchoolAdmin,
   addSchoolAdmin,
   removeSchoolAdmin,
 } = require('../controllers/schoolController');
@@ -19,6 +20,7 @@ router.get('/:id', getSchool);
 router.post('/', protect, isSuperAdmin, createSchool);
 router.put('/:id', protect, isSuperAdmin, updateSchool);
 router.delete('/:id', protect, isSuperAdmin, deleteSchool);
+router.post('/:id/create-admin', protect, isSuperAdmin, createSchoolAdmin);
 router.post('/:id/admins', protect, isSuperAdmin, addSchoolAdmin);
 router.delete('/:id/admins/:userId', protect, isSuperAdmin, removeSchoolAdmin);
 

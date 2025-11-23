@@ -145,6 +145,62 @@ const addSchoolAdmin = async (req, res) => {
   }
 };
 
+// @desc    Create and assign school admin
+// @route   POST /api/schools/:id/create-admin
+// @access  Private/SuperAdmin
+const createSchoolAdmin = async (req, res) => {
+  try {
+    const { firstName, lastName, email, password } = req.body;
+    const school = await School.findById(req.params.id);
+
+    if (!school) {
+      return res.status(404).json({ message: 'School not found' });
+    }
+
+    // Check if user with email already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User with this email already exists' });
+    }
+
+    // Validate password
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    // Create new user with schoolAdmin role
+    const user = await User.create({
+      firstName,
+      lastName,
+      email,
+      password,
+      role: 'schoolAdmin',
+      school: school._id,
+    });
+
+    // Add to school's admin list
+    school.schoolAdmins.push(user._id);
+    await school.save();
+
+    // Populate and return
+    await user.populate('school', 'name');
+
+    res.status(201).json({
+      message: 'School admin created successfully',
+      user: {
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        school: user.school,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Remove school admin from school
 // @route   DELETE /api/schools/:id/admins/:userId
 // @access  Private/SuperAdmin
@@ -185,6 +241,7 @@ module.exports = {
   createSchool,
   updateSchool,
   deleteSchool,
+  createSchoolAdmin,
   addSchoolAdmin,
   removeSchoolAdmin,
 };
