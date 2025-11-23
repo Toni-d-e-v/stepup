@@ -37,9 +37,11 @@ export interface Group {
   _id: string;
   name: string;
   description?: string;
-  type: 'class' | 'school' | 'generation' | 'custom';
+  type: 'class' | 'generation' | 'all_students' | 'all_professors' | 'custom';
   members: User[];
-  createdBy: string;
+  admin: User | string;
+  school: School | string;
+  totalSteps?: number;
   createdAt: string;
 }
 

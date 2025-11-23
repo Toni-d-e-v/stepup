@@ -8,10 +8,23 @@ const Challenge = require('../models/Challenge');
 // @access  Private/Admin
 const getDashboardStats = async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments();
-    const totalStudents = await User.countDocuments({ role: 'student' });
-    const totalProfessors = await User.countDocuments({ role: 'professor' });
-    const totalGroups = await Group.countDocuments();
+    // Build filter based on user role
+    const userFilter = {};
+    const groupFilter = {};
+
+    // SchoolAdmin can only see their school's data
+    if (req.user.role === 'schoolAdmin') {
+      if (!req.user.school) {
+        return res.status(403).json({ message: 'School admin must be assigned to a school' });
+      }
+      userFilter.school = req.user.school;
+      groupFilter.school = req.user.school;
+    }
+
+    const totalUsers = await User.countDocuments(userFilter);
+    const regularUsers = await User.countDocuments({ ...userFilter, role: 'user' });
+    const schoolAdmins = await User.countDocuments({ ...userFilter, role: 'schoolAdmin' });
+    const totalGroups = await Group.countDocuments(groupFilter);
     const totalChallenges = await Challenge.countDocuments();
 
     // Total steps across all users
@@ -54,8 +67,9 @@ const getDashboardStats = async (req, res) => {
     ]);
 
     // Recent registrations
-    const recentUsers = await User.find()
-      .select('firstName lastName email role createdAt')
+    const recentUsers = await User.find(userFilter)
+      .select('firstName lastName email role createdAt school')
+      .populate('school', 'name')
       .sort({ createdAt: -1 })
       .limit(10);
 
@@ -82,8 +96,8 @@ const getDashboardStats = async (req, res) => {
     res.json({
       overview: {
         totalUsers,
-        totalStudents,
-        totalProfessors,
+        regularUsers,
+        schoolAdmins,
         activeUsers,
         totalGroups,
         totalChallenges,
@@ -106,7 +120,20 @@ const getAllUsers = async (req, res) => {
     const { role, search, page = 1, limit = 20, sortBy = 'createdAt', order = 'desc' } = req.query;
 
     const filter = {};
-    if (role) filter.role = role;
+
+    // SchoolAdmin can only see users from their school
+    if (req.user.role === 'schoolAdmin') {
+      if (!req.user.school) {
+        return res.status(403).json({ message: 'School admin must be assigned to a school' });
+      }
+      filter.school = req.user.school;
+      // SchoolAdmin can only see regular users, not other admins
+      filter.role = 'user';
+    } else if (role) {
+      // SuperAdmin can filter by role
+      filter.role = role;
+    }
+
     if (search) {
       filter.$or = [
         { firstName: { $regex: search, $options: 'i' } },
@@ -120,10 +147,11 @@ const getAllUsers = async (req, res) => {
 
     const users = await User.find(filter)
       .select('-password')
+      .populate('school', 'name')
+      .populate('groups', 'name type')
       .sort(sortOptions)
       .limit(parseInt(limit))
-      .skip((parseInt(page) - 1) * parseInt(limit))
-      .populate('groups', 'name type');
+      .skip((parseInt(page) - 1) * parseInt(limit));
 
     const total = await User.countDocuments(filter);
 
@@ -204,10 +232,22 @@ const updateUser = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // SchoolAdmin can only update users from their school
+    if (req.user.role === 'schoolAdmin') {
+      if (!req.user.school || user.school.toString() !== req.user.school.toString()) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      // SchoolAdmin cannot change roles
+      if (role && role !== user.role) {
+        return res.status(403).json({ message: 'Cannot change user roles' });
+      }
+    }
+
     if (firstName) user.firstName = firstName;
     if (lastName) user.lastName = lastName;
     if (email) user.email = email;
-    if (role) user.role = role;
+    // Only superAdmin can change roles
+    if (role && req.user.role === 'superAdmin') user.role = role;
     if (dailyStepGoal) user.dailyStepGoal = dailyStepGoal;
 
     const updatedUser = await user.save();
@@ -233,6 +273,16 @@ const deleteUser = async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    // SchoolAdmin can only delete users from their school
+    if (req.user.role === 'schoolAdmin') {
+      if (!req.user.school || user.school.toString() !== req.user.school.toString()) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+      if (user.role !== 'user') {
+        return res.status(403).json({ message: 'Cannot delete admin users' });
+      }
     }
 
     // Delete user's steps
