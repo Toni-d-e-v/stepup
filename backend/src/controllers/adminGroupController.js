@@ -9,6 +9,15 @@ const getAllGroups = async (req, res) => {
     const { type, search, page = 1, limit = 20 } = req.query;
 
     const filter = {};
+
+    // SchoolAdmin can only see their school's groups
+    if (req.user.role === 'schoolAdmin') {
+      if (!req.user.school) {
+        return res.status(403).json({ message: 'School admin must be assigned to a school' });
+      }
+      filter.school = req.user.school;
+    }
+
     if (type) filter.type = type;
     if (search) {
       filter.$or = [
@@ -19,6 +28,7 @@ const getAllGroups = async (req, res) => {
 
     const groups = await Group.find(filter)
       .populate('admin', 'firstName lastName email')
+      .populate('school', 'name')
       .populate('members', 'firstName lastName role totalSteps')
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
@@ -45,7 +55,21 @@ const getAllGroups = async (req, res) => {
 // @access  Private/Admin
 const createGroup = async (req, res) => {
   try {
-    const { name, type, description, adminId, memberIds } = req.body;
+    const { name, type, description, adminId, memberIds, school } = req.body;
+
+    // Determine school based on user role
+    let schoolId;
+    if (req.user.role === 'schoolAdmin') {
+      if (!req.user.school) {
+        return res.status(403).json({ message: 'School admin must be assigned to a school' });
+      }
+      schoolId = req.user.school;
+    } else if (req.user.role === 'superAdmin') {
+      if (!school) {
+        return res.status(400).json({ message: 'School is required' });
+      }
+      schoolId = school;
+    }
 
     // Verify admin exists
     const admin = await User.findById(adminId || req.user._id);
@@ -53,11 +77,26 @@ const createGroup = async (req, res) => {
       return res.status(404).json({ message: 'Admin user not found' });
     }
 
+    // If memberIds provided, verify they belong to the same school
+    if (memberIds && memberIds.length > 0) {
+      const members = await User.find({
+        _id: { $in: memberIds },
+        school: schoolId
+      });
+
+      if (members.length !== memberIds.length) {
+        return res.status(400).json({
+          message: 'All members must belong to the same school as the group'
+        });
+      }
+    }
+
     const group = await Group.create({
       name,
       type,
       description,
       admin: adminId || req.user._id,
+      school: schoolId,
       members: memberIds || [],
     });
 
@@ -71,6 +110,7 @@ const createGroup = async (req, res) => {
 
     const populatedGroup = await Group.findById(group._id)
       .populate('admin', 'firstName lastName email')
+      .populate('school', 'name')
       .populate('members', 'firstName lastName role');
 
     res.status(201).json(populatedGroup);
@@ -91,6 +131,13 @@ const updateGroup = async (req, res) => {
       return res.status(404).json({ message: 'Group not found' });
     }
 
+    // Check permissions
+    if (req.user.role === 'schoolAdmin') {
+      if (!req.user.school || group.school.toString() !== req.user.school.toString()) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    }
+
     if (name) group.name = name;
     if (type) group.type = type;
     if (description !== undefined) group.description = description;
@@ -106,6 +153,7 @@ const updateGroup = async (req, res) => {
 
     const updatedGroup = await Group.findById(group._id)
       .populate('admin', 'firstName lastName email')
+      .populate('school', 'name')
       .populate('members', 'firstName lastName role');
 
     res.json(updatedGroup);
@@ -122,6 +170,13 @@ const deleteGroup = async (req, res) => {
     const group = await Group.findById(req.params.id);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
+    }
+
+    // Check permissions
+    if (req.user.role === 'schoolAdmin') {
+      if (!req.user.school || group.school.toString() !== req.user.school.toString()) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
     }
 
     // Remove group from all users
@@ -152,6 +207,25 @@ const addMembers = async (req, res) => {
     const group = await Group.findById(req.params.id);
     if (!group) {
       return res.status(404).json({ message: 'Group not found' });
+    }
+
+    // Check permissions
+    if (req.user.role === 'schoolAdmin') {
+      if (!req.user.school || group.school.toString() !== req.user.school.toString()) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    }
+
+    // Verify all users belong to the same school
+    const users = await User.find({
+      _id: { $in: userIds },
+      school: group.school
+    });
+
+    if (users.length !== userIds.length) {
+      return res.status(400).json({
+        message: 'All users must belong to the same school as the group'
+      });
     }
 
     // Add new members (avoiding duplicates)
@@ -186,6 +260,13 @@ const removeMember = async (req, res) => {
       return res.status(404).json({ message: 'Group not found' });
     }
 
+    // Check permissions
+    if (req.user.role === 'schoolAdmin') {
+      if (!req.user.school || group.school.toString() !== req.user.school.toString()) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    }
+
     group.members = group.members.filter(
       memberId => memberId.toString() !== userId
     );
@@ -207,9 +288,23 @@ const removeMember = async (req, res) => {
 // @access  Private/Admin
 const generateGroups = async (req, res) => {
   try {
-    const { type, pattern } = req.body;
+    const { type, pattern, school } = req.body;
     // type: 'class' or 'generation'
-    // pattern: { prefix: 'Class', start: 1, end: 10 } or { name: 'Generation 2024', role: 'student' }
+    // pattern: { prefix: 'Class', start: 1, end: 10 } or { name: 'Generation 2024', role: 'user' }
+
+    // Determine school based on user role
+    let schoolId;
+    if (req.user.role === 'schoolAdmin') {
+      if (!req.user.school) {
+        return res.status(403).json({ message: 'School admin must be assigned to a school' });
+      }
+      schoolId = req.user.school;
+    } else if (req.user.role === 'superAdmin') {
+      if (!school) {
+        return res.status(400).json({ message: 'School is required' });
+      }
+      schoolId = school;
+    }
 
     const createdGroups = [];
 
@@ -221,20 +316,25 @@ const generateGroups = async (req, res) => {
           type: 'class',
           description: `Auto-generated class group ${i}`,
           admin: req.user._id,
+          school: schoolId,
           members: [],
         });
         createdGroups.push(group);
       }
     } else if (type === 'generation' && pattern.name) {
-      // Generate generation group for all students or professors
-      const users = await User.find({ role: pattern.role || 'student' });
+      // Generate generation group for all users from the school
+      const users = await User.find({
+        role: pattern.role || 'user',
+        school: schoolId
+      });
       const userIds = users.map(u => u._id);
 
       const group = await Group.create({
         name: pattern.name,
         type: 'generation',
-        description: `Auto-generated generation group for ${pattern.role || 'students'}`,
+        description: `Auto-generated generation group for ${pattern.role || 'users'}`,
         admin: req.user._id,
+        school: schoolId,
         members: userIds,
       });
 
@@ -246,39 +346,21 @@ const generateGroups = async (req, res) => {
 
       createdGroups.push(group);
     } else if (type === 'all_students') {
-      // Create "All Students" group
-      const students = await User.find({ role: 'student' });
-      const studentIds = students.map(s => s._id);
+      // Create "All Students" group (now "All Users" for the school)
+      const users = await User.find({ role: 'user', school: schoolId });
+      const userIds = users.map(u => u._id);
 
       const group = await Group.create({
-        name: 'All Students',
+        name: 'All Users',
         type: 'all_students',
-        description: 'Group containing all students',
+        description: 'Group containing all users from the school',
         admin: req.user._id,
-        members: studentIds,
+        school: schoolId,
+        members: userIds,
       });
 
       await User.updateMany(
-        { _id: { $in: studentIds } },
-        { $addToSet: { groups: group._id } }
-      );
-
-      createdGroups.push(group);
-    } else if (type === 'all_professors') {
-      // Create "All Professors" group
-      const professors = await User.find({ role: 'professor' });
-      const professorIds = professors.map(p => p._id);
-
-      const group = await Group.create({
-        name: 'All Professors',
-        type: 'all_professors',
-        description: 'Group containing all professors',
-        admin: req.user._id,
-        members: professorIds,
-      });
-
-      await User.updateMany(
-        { _id: { $in: professorIds } },
+        { _id: { $in: userIds } },
         { $addToSet: { groups: group._id } }
       );
 
