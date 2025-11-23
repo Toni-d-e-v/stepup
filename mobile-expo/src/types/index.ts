@@ -1,12 +1,19 @@
+export interface School {
+  _id: string;
+  name: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  active: boolean;
+}
+
 export interface User {
   _id: string;
   email: string;
   firstName: string;
   lastName: string;
-  role: 'student' | 'professor' | 'admin';
-  school?: string;
-  class?: string;
-  generation?: string;
+  role: 'user' | 'schoolAdmin' | 'superAdmin';
+  school?: School | string;
   totalSteps?: number;
   createdAt: string;
 }

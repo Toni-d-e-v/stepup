@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const School = require('../models/School');
 const generateToken = require('../utils/generateToken');
 
 // @desc    Register new user
@@ -6,7 +7,12 @@ const generateToken = require('../utils/generateToken');
 // @access  Public
 const register = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, role } = req.body;
+    const { firstName, lastName, email, password, school } = req.body;
+
+    // Validate required fields
+    if (!firstName || !lastName || !email || !password || !school) {
+      return res.status(400).json({ message: 'Please provide all required fields' });
+    }
 
     // Check if user exists
     const userExists = await User.findOne({ email });
@@ -15,23 +21,39 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Create user
+    // Verify school exists
+    const schoolExists = await School.findById(school);
+
+    if (!schoolExists) {
+      return res.status(400).json({ message: 'Invalid school selected' });
+    }
+
+    // Create user (role defaults to 'user' in schema)
     const user = await User.create({
       firstName,
       lastName,
       email,
       password,
-      role,
+      school,
+      role: 'user', // Explicitly set role to user
     });
 
     if (user) {
+      // Populate school before sending response
+      await user.populate('school', 'name');
+
       res.status(201).json({
-        _id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role,
         token: generateToken(user._id),
+        user: {
+          _id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          role: user.role,
+          school: user.school,
+          totalSteps: user.totalSteps,
+          createdAt: user.createdAt,
+        },
       });
     } else {
       res.status(400).json({ message: 'Invalid user data' });
@@ -48,20 +70,24 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check for user email
-    const user = await User.findOne({ email }).select('+password');
+    // Check for user email and populate school
+    const user = await User.findOne({ email })
+      .select('+password')
+      .populate('school', 'name');
 
     if (user && (await user.matchPassword(password))) {
       res.json({
-        _id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        role: user.role,
-        totalSteps: user.totalSteps,
-        totalPoints: user.totalPoints,
-        dailyStepGoal: user.dailyStepGoal,
         token: generateToken(user._id),
+        user: {
+          _id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          role: user.role,
+          school: user.school,
+          totalSteps: user.totalSteps,
+          createdAt: user.createdAt,
+        },
       });
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
@@ -77,6 +103,7 @@ const login = async (req, res) => {
 const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
+      .populate('school', 'name')
       .populate('groups', 'name type');
 
     res.json({
@@ -85,12 +112,14 @@ const getMe = async (req, res) => {
       lastName: user.lastName,
       email: user.email,
       role: user.role,
+      school: user.school,
       groups: user.groups,
       dailyStepGoal: user.dailyStepGoal,
       totalSteps: user.totalSteps,
       totalPoints: user.totalPoints,
       badges: user.badges,
       avatar: user.avatar,
+      createdAt: user.createdAt,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

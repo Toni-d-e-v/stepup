@@ -21,10 +21,7 @@ export const authService = {
     password: string;
     firstName: string;
     lastName: string;
-    role: 'student' | 'professor';
-    school?: string;
-    class?: string;
-    generation?: string;
+    school: string;
   }): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>('/auth/register', data);
 

@@ -12,6 +12,7 @@ const authRoutes = require('./routes/authRoutes');
 const stepRoutes = require('./routes/stepRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
 const groupRoutes = require('./routes/groupRoutes');
+const schoolRoutes = require('./routes/schoolRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 
 // Initialize express app
@@ -45,6 +46,7 @@ app.get('/', (req, res) => {
       steps: '/api/steps',
       leaderboard: '/api/leaderboard',
       groups: '/api/groups',
+      schools: '/api/schools',
       admin: '/api/admin',
     },
   });
@@ -54,6 +56,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/steps', stepRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/groups', groupRoutes);
+app.use('/api/schools', schoolRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Error handler (must be last)

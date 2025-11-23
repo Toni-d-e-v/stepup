@@ -26,18 +26,32 @@ import {
   BarChart as BarChartIcon,
   Logout as LogoutIcon,
   AccountCircle,
+  School as SchoolIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
 const drawerWidth = 240;
 
-const menuItems = [
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { text: 'Users', icon: <PeopleIcon />, path: '/users' },
-  { text: 'Groups', icon: <GroupIcon />, path: '/groups' },
-  { text: 'Challenges', icon: <TrophyIcon />, path: '/challenges' },
-  { text: 'Statistics', icon: <BarChartIcon />, path: '/statistics' },
-];
+const getMenuItems = (userRole) => {
+  const baseItems = [
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
+    { text: 'Users', icon: <PeopleIcon />, path: '/users' },
+    { text: 'Groups', icon: <GroupIcon />, path: '/groups' },
+    { text: 'Challenges', icon: <TrophyIcon />, path: '/challenges' },
+    { text: 'Statistics', icon: <BarChartIcon />, path: '/statistics' },
+  ];
+
+  // Add Schools menu item for superAdmin only
+  if (userRole === 'superAdmin') {
+    baseItems.splice(1, 0, {
+      text: 'Schools',
+      icon: <SchoolIcon />,
+      path: '/schools',
+    });
+  }
+
+  return baseItems;
+};
 
 export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -63,6 +77,8 @@ export default function Layout() {
     navigate('/login');
   };
 
+  const menuItems = getMenuItems(user?.role);
+
   const drawer = (
     <div>
       <Toolbar>
@@ -84,6 +100,17 @@ export default function Layout() {
           </ListItem>
         ))}
       </List>
+      <Divider />
+      <Box sx={{ p: 2 }}>
+        <Typography variant="caption" color="text.secondary">
+          Role: {user?.role === 'superAdmin' ? 'Super Admin' : 'School Admin'}
+        </Typography>
+        {user?.school && (
+          <Typography variant="caption" display="block" color="text.secondary">
+            School: {user.school.name}
+          </Typography>
+        )}
+      </Box>
     </div>
   );
 

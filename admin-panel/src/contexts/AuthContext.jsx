@@ -24,7 +24,8 @@ export const AuthProvider = ({ children }) => {
     if (token) {
       try {
         const response = await authAPI.getMe();
-        if (response.data.role === 'admin') {
+        // Allow both superAdmin and schoolAdmin roles
+        if (response.data.role === 'superAdmin' || response.data.role === 'schoolAdmin') {
           setUser(response.data);
         } else {
           localStorage.removeItem('adminToken');
@@ -39,15 +40,16 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await authAPI.login(email, password);
-      const { token, role } = response.data;
+      const { token, user } = response.data;
 
-      if (role !== 'admin') {
+      // Allow both superAdmin and schoolAdmin roles
+      if (user.role !== 'superAdmin' && user.role !== 'schoolAdmin') {
         throw new Error('Admin access required');
       }
 
       localStorage.setItem('adminToken', token);
-      setUser(response.data);
-      return response.data;
+      setUser(user);
+      return user;
     } catch (error) {
       throw error;
     }

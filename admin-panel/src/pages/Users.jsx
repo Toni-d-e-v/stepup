@@ -33,9 +33,11 @@ import {
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { userAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
 
 export default function Users() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -153,9 +155,13 @@ export default function Users() {
               onChange={(e) => setRoleFilter(e.target.value)}
             >
               <MenuItem value="">All</MenuItem>
-              <MenuItem value="student">Student</MenuItem>
-              <MenuItem value="professor">Professor</MenuItem>
-              <MenuItem value="admin">Admin</MenuItem>
+              <MenuItem value="user">User</MenuItem>
+              {currentUser?.role === 'superAdmin' && (
+                <>
+                  <MenuItem value="schoolAdmin">School Admin</MenuItem>
+                  <MenuItem value="superAdmin">Super Admin</MenuItem>
+                </>
+              )}
             </Select>
           </FormControl>
           <Button
@@ -180,6 +186,7 @@ export default function Users() {
                 <TableRow>
                   <TableCell>Name</TableCell>
                   <TableCell>Email</TableCell>
+                  <TableCell>School</TableCell>
                   <TableCell>Role</TableCell>
                   <TableCell align="right">Total Steps</TableCell>
                   <TableCell align="right">Points</TableCell>
@@ -195,14 +202,19 @@ export default function Users() {
                       {user.firstName} {user.lastName}
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.school?.name || '-'}</TableCell>
                     <TableCell>
                       <Chip
-                        label={user.role}
+                        label={
+                          user.role === 'superAdmin' ? 'Super Admin' :
+                          user.role === 'schoolAdmin' ? 'School Admin' :
+                          'User'
+                        }
                         size="small"
                         color={
-                          user.role === 'student' ? 'primary' :
-                          user.role === 'professor' ? 'secondary' :
-                          'default'
+                          user.role === 'superAdmin' ? 'error' :
+                          user.role === 'schoolAdmin' ? 'secondary' :
+                          'primary'
                         }
                       />
                     </TableCell>
@@ -266,10 +278,15 @@ export default function Users() {
                 value={selectedUser?.role || ''}
                 label="Role"
                 onChange={(e) => setSelectedUser({ ...selectedUser, role: e.target.value })}
+                disabled={currentUser?.role !== 'superAdmin'}
               >
-                <MenuItem value="student">Student</MenuItem>
-                <MenuItem value="professor">Professor</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
+                <MenuItem value="user">User</MenuItem>
+                {currentUser?.role === 'superAdmin' && (
+                  <>
+                    <MenuItem value="schoolAdmin">School Admin</MenuItem>
+                    <MenuItem value="superAdmin">Super Admin</MenuItem>
+                  </>
+                )}
               </Select>
             </FormControl>
             <TextField

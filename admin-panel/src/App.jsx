@@ -6,6 +6,7 @@ import { CircularProgress, Box } from '@mui/material';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
+import Schools from './pages/Schools';
 import Groups from './pages/Groups';
 import Challenges from './pages/Challenges';
 import Statistics from './pages/Statistics';
@@ -38,6 +39,7 @@ function App() {
         </PrivateRoute>
       }>
         <Route index element={<Dashboard />} />
+        <Route path="schools" element={<Schools />} />
         <Route path="users" element={<Users />} />
         <Route path="groups" element={<Groups />} />
         <Route path="challenges" element={<Challenges />} />

@@ -133,9 +133,16 @@ export const GroupsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         >
           {filteredGroups.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No groups found</Text>
+              <Text style={styles.emptyIcon}>👥</Text>
+              <Text style={styles.emptyText}>
+                {groups.length === 0 && !searchQuery && !selectedType
+                  ? 'Waiting for Groups'
+                  : 'No groups found'}
+              </Text>
               <Text style={styles.emptySubtext}>
-                {searchQuery || selectedType
+                {groups.length === 0 && !searchQuery && !selectedType
+                  ? 'Your school admin will add you to groups soon. You\'ll be notified when you\'re added!'
+                  : searchQuery || selectedType
                   ? 'Try adjusting your filters'
                   : 'Groups will appear here when created'}
               </Text>
@@ -199,6 +206,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 32,
     marginTop: 64,
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 16,
   },
   emptyText: {
     fontSize: 18,

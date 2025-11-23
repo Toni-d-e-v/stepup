@@ -34,13 +34,31 @@ const protect = async (req, res, next) => {
   }
 };
 
-// Check if user is a professor
-const isProfessor = (req, res, next) => {
-  if (req.user && req.user.role === 'professor') {
+// Check if user is a super admin
+const isSuperAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'superAdmin') {
     next();
   } else {
-    res.status(403).json({ message: 'Access denied. Professors only.' });
+    res.status(403).json({ message: 'Access denied. Super admins only.' });
   }
 };
 
-module.exports = { protect, isProfessor };
+// Check if user is a school admin
+const isSchoolAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'schoolAdmin') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Access denied. School admins only.' });
+  }
+};
+
+// Check if user is either super admin or school admin
+const isAdmin = (req, res, next) => {
+  if (req.user && (req.user.role === 'superAdmin' || req.user.role === 'schoolAdmin')) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Access denied. Admin access required.' });
+  }
+};
+
+module.exports = { protect, isSuperAdmin, isSchoolAdmin, isAdmin };

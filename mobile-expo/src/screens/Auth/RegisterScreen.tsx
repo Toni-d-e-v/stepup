@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { TextInput, Button, Text, Snackbar, SegmentedButtons } from 'react-native-paper';
+import { TextInput, Button, Text, Snackbar, Menu } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../context/AuthContext';
+import { schoolsService } from '../../services/schools';
+import { School } from '../../types';
 import { COLORS } from '../../utils/constants';
 
 export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
@@ -13,19 +15,47 @@ export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
     confirmPassword: '',
     firstName: '',
     lastName: '',
-    role: 'student' as 'student' | 'professor',
     school: '',
-    class: '',
-    generation: '',
   });
+  const [schools, setSchools] = useState<School[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
+  const [schoolMenuVisible, setSchoolMenuVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingSchools, setLoadingSchools] = useState(true);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    loadSchools();
+  }, []);
+
+  const loadSchools = async () => {
+    try {
+      const schoolsList = await schoolsService.getSchools();
+      setSchools(schoolsList);
+    } catch (err) {
+      console.error('Error loading schools:', err);
+      setError('Could not load schools. Please try again.');
+    } finally {
+      setLoadingSchools(false);
+    }
+  };
+
+  const handleSchoolSelect = (school: School) => {
+    setSelectedSchool(school);
+    setFormData({ ...formData, school: school._id });
+    setSchoolMenuVisible(false);
+  };
 
   const handleRegister = async () => {
     // Validation
     if (!formData.email || !formData.password || !formData.firstName || !formData.lastName) {
       setError('Please fill in all required fields');
+      return;
+    }
+
+    if (!formData.school) {
+      setError('Please select a school');
       return;
     }
 
@@ -48,10 +78,7 @@ export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
         password: formData.password,
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
-        role: formData.role,
-        school: formData.school.trim() || undefined,
-        class: formData.class.trim() || undefined,
-        generation: formData.generation.trim() || undefined,
+        school: formData.school,
       });
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
@@ -68,23 +95,11 @@ export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.content}>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join StepUp and start your journey</Text>
+            <Text style={styles.logo}>👟</Text>
+            <Text style={styles.title}>Join StepUp</Text>
+            <Text style={styles.subtitle}>Start tracking your steps today</Text>
 
             <View style={styles.form}>
-              <SegmentedButtons
-                value={formData.role}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, role: value as 'student' | 'professor' })
-                }
-                buttons={[
-                  { value: 'student', label: 'Student' },
-                  { value: 'professor', label: 'Professor' },
-                ]}
-                style={styles.segmented}
-                theme={{ colors: { secondaryContainer: '#fff' } }}
-              />
-
               <TextInput
                 label="First Name *"
                 value={formData.firstName}
@@ -116,6 +131,7 @@ export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
                 mode="outlined"
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoComplete="email"
                 style={styles.input}
                 outlineColor="#fff"
                 activeOutlineColor="#fff"
@@ -123,45 +139,46 @@ export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
                 theme={{ colors: { onSurfaceVariant: '#fff' } }}
               />
 
-              <TextInput
-                label="School"
-                value={formData.school}
-                onChangeText={(text) => setFormData({ ...formData, school: text })}
-                mode="outlined"
-                style={styles.input}
-                outlineColor="#fff"
-                activeOutlineColor="#fff"
-                textColor="#fff"
-                theme={{ colors: { onSurfaceVariant: '#fff' } }}
-              />
-
-              {formData.role === 'student' && (
-                <>
+              <Menu
+                visible={schoolMenuVisible}
+                onDismiss={() => setSchoolMenuVisible(false)}
+                anchor={
                   <TextInput
-                    label="Class"
-                    value={formData.class}
-                    onChangeText={(text) => setFormData({ ...formData, class: text })}
+                    label="School *"
+                    value={selectedSchool?.name || ''}
                     mode="outlined"
+                    editable={false}
                     style={styles.input}
                     outlineColor="#fff"
                     activeOutlineColor="#fff"
                     textColor="#fff"
                     theme={{ colors: { onSurfaceVariant: '#fff' } }}
+                    right={
+                      <TextInput.Icon
+                        icon="chevron-down"
+                        onPress={() => setSchoolMenuVisible(true)}
+                        color="#fff"
+                      />
+                    }
+                    onPressIn={() => setSchoolMenuVisible(true)}
                   />
-
-                  <TextInput
-                    label="Generation"
-                    value={formData.generation}
-                    onChangeText={(text) => setFormData({ ...formData, generation: text })}
-                    mode="outlined"
-                    style={styles.input}
-                    outlineColor="#fff"
-                    activeOutlineColor="#fff"
-                    textColor="#fff"
-                    theme={{ colors: { onSurfaceVariant: '#fff' } }}
-                  />
-                </>
-              )}
+                }
+                contentStyle={styles.menu}
+              >
+                {loadingSchools ? (
+                  <Menu.Item title="Loading schools..." disabled />
+                ) : schools.length === 0 ? (
+                  <Menu.Item title="No schools available" disabled />
+                ) : (
+                  schools.map((school) => (
+                    <Menu.Item
+                      key={school._id}
+                      onPress={() => handleSchoolSelect(school)}
+                      title={school.name}
+                    />
+                  ))
+                )}
+              </Menu>
 
               <TextInput
                 label="Password *"
@@ -202,7 +219,7 @@ export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
                 mode="contained"
                 onPress={handleRegister}
                 loading={loading}
-                disabled={loading}
+                disabled={loading || loadingSchools}
                 style={styles.button}
                 buttonColor="#fff"
                 textColor={COLORS.primary}
@@ -249,36 +266,44 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 24,
+    justifyContent: 'center',
+  },
+  logo: {
+    fontSize: 60,
+    textAlign: 'center',
+    marginBottom: 16,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#fff',
+    textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
     color: '#fff',
-    marginBottom: 24,
+    textAlign: 'center',
+    marginBottom: 32,
     opacity: 0.9,
   },
   form: {
     width: '100%',
   },
-  segmented: {
-    marginBottom: 16,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
   input: {
-    marginBottom: 12,
+    marginBottom: 16,
     backgroundColor: 'transparent',
   },
+  menu: {
+    maxHeight: 300,
+    backgroundColor: '#fff',
+  },
   button: {
-    marginTop: 16,
+    marginTop: 8,
     paddingVertical: 6,
   },
   linkButton: {
-    marginTop: 8,
+    marginTop: 16,
   },
   snackbar: {
     backgroundColor: COLORS.error,
